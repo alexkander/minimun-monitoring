@@ -47,26 +47,6 @@ services:
     networks:
       monitoring:
 
-  speedtest:
-    image: miguelndecarvalho/speedtest-exporter:latest
-    container_name: speedtest
-    restart: always
-    user: 65534:65534 # nobody:nobody
-    labels:
-      - "traefik.enable=false"
-    networks:
-      monitoring:
-  
-  speedtest2:
-    image: billimek/prometheus-speedtest-exporter:latest
-    container_name: speedtest2
-    restart: always
-    user: 65534:65534 # nobody:nobody
-    labels:
-      - "traefik.enable=false"
-    networks:
-      monitoring:
-
   prometheus:
     image: prom/prometheus:latest
     container_name: prometheus
