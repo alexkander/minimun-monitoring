@@ -55,7 +55,7 @@ services:
     volumes:
       - /etc/localtime:/etc/localtime:ro
       - ./config/prometheus/:/etc/prometheus
-      - /appdata/prometheus:/prometheus
+      - prometheus_data:/prometheus
     command:
       - "--config.file=/etc/prometheus/prometheus.yml"
       - "--storage.tsdb.path=/prometheus"
@@ -64,7 +64,6 @@ services:
       - "--web.console.templates=/usr/share/prometheus/consoles"
     networks:
       monitoring:
-      hostlan:
     labels:
       - "traefik.http.routers.my-prometheus.rule=Host(`prometheus.aa.home`)"
       - "traefik.http.routers.my-prometheus.entrypoints=web"
@@ -80,23 +79,24 @@ services:
       - /etc/localtime:/etc/localtime:ro
       - ./config/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards
       - ./config/grafana/provisioning/datasources/datasource.yml:/etc/grafana/provisioning/datasources/datasource.yml
-      - /appdata/grafana:/var/lib/grafana
+      - grafana_data:/var/lib/grafana
     environment:
       GF_SECURITY_ADMIN_PASSWORD: admin
       GF_USERS_ALLOW_SIGN_UP: false
       GF_INSTALL_PLUGINS: flant-statusmap-panel,ae3e-plotly-panel
     networks:
       monitoring:
-      hostlan:
     labels:
       - "traefik.http.routers.my-grafana.rule=Host(`grafana.aa.home`)"
       - "traefik.http.routers.my-grafana.entrypoints=web"
       - "traefik.http.routers.my-router.service=my-grafana"
       - "traefik.http.services.my-grafana.loadBalancer.server.port=3000"
 
+volumes:
+  portainer_data:
+    external: true
+
 networks:
   monitoring:
     driver: bridge
     name: monitoring
-  hostlan:
-    external: true
