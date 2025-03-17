@@ -49,7 +49,6 @@ services:
     image: prom/prometheus:latest
     container_name: prometheus
     restart: always
-    user: 1100:100 # dockeruser:users
     volumes:
       - /etc/localtime:/etc/localtime:ro
       - ./config/prometheus/:/etc/prometheus
@@ -69,7 +68,6 @@ services:
     image: grafana/grafana:latest
     container_name: grafana
     restart: always
-    user: 1100:100 # dockeruser:users
     volumes:
       - /etc/localtime:/etc/localtime:ro
       - ./config/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards
