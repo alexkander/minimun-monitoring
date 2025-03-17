@@ -1,0 +1,122 @@
+version: "3"
+
+services:
+  portainer:
+    image: portainer/portainer-ce:latest
+    container_name: portainer
+    restart: unless-stopped
+    ports:
+      - 9001:9000
+    volumes:
+      - portainer_data:/data
+      - /var/run/docker.sock:/var/run/docker.sock
+  nodeexp:
+    image: prom/node-exporter:latest
+    container_name: nodeexp
+    restart: always
+    privileged: true
+    user: 65534:65534 # nobody:nobody
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - "--path.procfs=/host/proc"
+      - "--path.sysfs=/host/sys"
+      - "--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|host|etc|rootfs/var/lib/docker/containers|rootfs/var/lib/docker/overlay2|rootfs/run/docker/netns|rootfs/var/lib/docker/aufs)($$|/)"
+    labels:
+      - "traefik.enable=false"
+    networks:
+      monitoring:
+
+  ping:
+    image: prom/blackbox-exporter:latest
+    container_name: ping
+    restart: always
+    user: 65534:65534 # nobody:nobody
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ./config/blackbox/:/config
+    tty: true
+    stdin_open: true
+    command:
+      - "--config.file=/config/blackbox.yml"
+    labels:
+      - "traefik.enable=false"
+    networks:
+      monitoring:
+
+  speedtest:
+    image: miguelndecarvalho/speedtest-exporter:latest
+    container_name: speedtest
+    restart: always
+    user: 65534:65534 # nobody:nobody
+    labels:
+      - "traefik.enable=false"
+    networks:
+      monitoring:
+  
+  speedtest2:
+    image: billimek/prometheus-speedtest-exporter:latest
+    container_name: speedtest2
+    restart: always
+    user: 65534:65534 # nobody:nobody
+    labels:
+      - "traefik.enable=false"
+    networks:
+      monitoring:
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    restart: always
+    user: 1100:100 # dockeruser:users
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ./config/prometheus/:/etc/prometheus
+      - /appdata/prometheus:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=90d"
+      - "--web.console.libraries=/usr/share/prometheus/console_libraries"
+      - "--web.console.templates=/usr/share/prometheus/consoles"
+    networks:
+      monitoring:
+      hostlan:
+    labels:
+      - "traefik.http.routers.my-prometheus.rule=Host(`prometheus.aa.home`)"
+      - "traefik.http.routers.my-prometheus.entrypoints=web"
+      - "traefik.http.routers.my-router.service=my-prometheus"
+      - "traefik.http.services.my-prometheus.loadBalancer.server.port=9090"
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    restart: always
+    user: 1100:100 # dockeruser:users
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ./config/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards
+      - ./config/grafana/provisioning/datasources/datasource.yml:/etc/grafana/provisioning/datasources/datasource.yml
+      - /appdata/grafana:/var/lib/grafana
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: false
+      GF_INSTALL_PLUGINS: flant-statusmap-panel,ae3e-plotly-panel
+    networks:
+      monitoring:
+      hostlan:
+    labels:
+      - "traefik.http.routers.my-grafana.rule=Host(`grafana.aa.home`)"
+      - "traefik.http.routers.my-grafana.entrypoints=web"
+      - "traefik.http.routers.my-router.service=my-grafana"
+      - "traefik.http.services.my-grafana.loadBalancer.server.port=3000"
+
+networks:
+  monitoring:
+    driver: bridge
+    name: monitoring
+  hostlan:
+    external: true
